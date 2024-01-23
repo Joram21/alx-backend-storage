@@ -1,33 +1,34 @@
 #!/usr/bin/env python3
-""" 12. Log stats
-"""
+# -*- coding: utf-8 -*-
 
+""" provide some stats about nginx logs stored in MongoDB"""
 
 from pymongo import MongoClient
 
 
 def log_stats():
-    """ log_stats.
-    """
+    """ provides some stats about nginx logs stored in MongoDB"""
     client = MongoClient('mongodb://127.0.0.1:27017')
-    logs_collection = client.logs.nginx
-    total = logs_collection.count_documents({})
-    get = logs_collection.count_documents({"method": "GET"})
-    post = logs_collection.count_documents({"method": "POST"})
-    put = logs_collection.count_documents({"method": "PUT"})
-    patch = logs_collection.count_documents({"method": "PATCH"})
-    delete = logs_collection.count_documents({"method": "DELETE"})
-    path = logs_collection.count_documents(
-        {"method": "GET", "path": "/status"})
-    print(f"{total} logs")
+    logs = client.logs.nginx
+    print("{} logs".format(logs.count_documents({})))
     print("Methods:")
-    print(f"\tmethod GET: {get}")
-    print(f"\tmethod POST: {post}")
-    print(f"\tmethod PUT: {put}")
-    print(f"\tmethod PATCH: {patch}")
-    print(f"\tmethod DELETE: {delete}")
-    print(f"{path} status check")
-
+    methods = ["GET", "POST", "PUT", "PATCH", "DELETE"]
+    for method in methods:
+        print("\tmethod {}: {}".format(
+            method, logs.count_documents({"method": method})))
+    print("{} status check".format(logs.count_documents(
+        {"method": "GET", "path": "/status"})))
+    print("IPs:")
+    ips = logs.aggregate([
+        {"$group": {"_id": "$ip", "count": {"$sum": 1}}},
+        {"$sort": {"count": -1}},
+        {"$limit": 10}
+    ])
+    for ip in ips:
+        print("\t{}: {}".format(ip.get("_id"), ip.get("count")))
+    print("404 status code: {}".format(
+        logs.count_documents({"status_code": 404})))
+    client.close()
 
 if __name__ == "__main__":
     log_stats()

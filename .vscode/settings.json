@@ -4,6 +4,7 @@
         "lrange",
         "pymongo",
         "rpush",
+        "setex",
         "UCSD",
         "UCSF",
         "Wrapp"
